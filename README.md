@@ -1,4 +1,3 @@
-cublas-benchmark
-================
+# cublas-benchmark
 
 Benchmark for cuBLAS throughput
