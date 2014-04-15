@@ -26,9 +26,11 @@ int main() {
     assert(hostPtr[1] = malloc(k * n * sizeof(float)));
     assert(hostPtr[2] = malloc(m * n * sizeof(float)));
 
-    for (int size = 8; size <= MAX_LENGTH; size <<= 1) {
-        int repeat = (MAX_LENGTH / size);
-        m = n = k = MAX_LENGTH;
+    // for (int size = 1024; size <= MAX_LENGTH; size <<= 1) {
+        // int repeat = (MAX_LENGTH / size);
+        int repeat = 1024;
+        // m = n = k = MAX_LENGTH;
+        m = n = k = 4096;
         startTime = clock();
         while (repeat--) {
             assert(cublasSetMatrix(m, k, sizeof(float), hostPtr[0], k, devPtr[0], k) == CUBLAS_STATUS_SUCCESS);
@@ -39,8 +41,8 @@ int main() {
             assert(cublasGetMatrix(k, n, sizeof(float), devPtr[1], n, hostPtr[1], n) == CUBLAS_STATUS_SUCCESS);
             assert(cublasGetMatrix(m, n, sizeof(float), devPtr[2], n, hostPtr[0], n) == CUBLAS_STATUS_SUCCESS);
         }
-        printf("Size: %d, time: %lf\n", size, (double) (clock() - startTime) / CLOCKS_PER_SEC);
-    }
+        // printf("Size: %d, time: %lf\n", size, (double) (clock() - startTime) / size / size / size);
+    // }
 
     free(hostPtr[2]);
     free(hostPtr[1]);
