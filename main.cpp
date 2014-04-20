@@ -8,7 +8,7 @@
 
 using namespace std;
 
-#define MAX_LENGTH (1 << 14)
+#define MAX_LENGTH (1 << 16)
 
 int main() {
     cublasHandle_t cublasHandle;
@@ -16,7 +16,7 @@ int main() {
     int m, n, k;
     float alpha, beta;
     clock_t startTime;
-    m = 16;
+    m = 128;
     k = 24 * 9 * 9;
     n = MAX_LENGTH;
     alpha = beta = 1.0;
@@ -34,23 +34,13 @@ int main() {
         n = size;
         startTime = clock();
         while (repeat--) {
-            // assert(cublasSetMatrix(m, k, sizeof(float), hostPtr[0], k, devPtr[0], k) == CUBLAS_STATUS_SUCCESS);
-            cublasStatus_t a = cublasSetMatrix(m, k, sizeof(float), hostPtr[0], k, devPtr[0], k);
-            if (a == CUBLAS_STATUS_NOT_INITIALIZED) {
-                cout << "not initialized" << endl;
-            } else if (a == CUBLAS_STATUS_INVALID_VALUE) {
-                cout << " invalid value" << endl;
-            } else if (a == CUBLAS_STATUS_MAPPING_ERROR) {
-                cout << "mapping error" << endl;
-            } else {
-                exit(5);
-            }
-            assert(cublasSetMatrix(k, n, sizeof(float), hostPtr[1], n, devPtr[1], n) == CUBLAS_STATUS_SUCCESS);
-            assert(cublasSetMatrix(m, n, sizeof(float), hostPtr[2], n, devPtr[0], n) == CUBLAS_STATUS_SUCCESS);
+            assert(cublasSetMatrix(k, m, sizeof(float), hostPtr[0], k, devPtr[0], k) == CUBLAS_STATUS_SUCCESS);
+            assert(cublasSetMatrix(n, k, sizeof(float), hostPtr[1], n, devPtr[1], n) == CUBLAS_STATUS_SUCCESS);
+            assert(cublasSetMatrix(n, m, sizeof(float), hostPtr[2], n, devPtr[2], n) == CUBLAS_STATUS_SUCCESS);
             assert(cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, n, m, k, &alpha, (const float*) devPtr[1], n, (const float*) devPtr[0], k, &beta, (float*) devPtr[2], n) == CUBLAS_STATUS_SUCCESS);
-            assert(cublasGetMatrix(m, k, sizeof(float), devPtr[0], k, hostPtr[0], k) == CUBLAS_STATUS_SUCCESS);
-            assert(cublasGetMatrix(k, n, sizeof(float), devPtr[1], n, hostPtr[1], n) == CUBLAS_STATUS_SUCCESS);
-            assert(cublasGetMatrix(m, n, sizeof(float), devPtr[2], n, hostPtr[0], n) == CUBLAS_STATUS_SUCCESS);
+            assert(cublasGetMatrix(k, m, sizeof(float), devPtr[0], k, hostPtr[0], k) == CUBLAS_STATUS_SUCCESS);
+            assert(cublasGetMatrix(n, k, sizeof(float), devPtr[1], n, hostPtr[1], n) == CUBLAS_STATUS_SUCCESS);
+            assert(cublasGetMatrix(n, m, sizeof(float), devPtr[2], n, hostPtr[2], n) == CUBLAS_STATUS_SUCCESS);
         }
         printf("Size: %d, time: %lf\n", size, (double) (clock() - startTime) / CLOCKS_PER_SEC);
     }
