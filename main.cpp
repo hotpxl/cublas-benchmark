@@ -10,7 +10,7 @@ using namespace std;
 
 #define M_MAX 256
 #define K_MAX 32768
-#define N_MAX 16344
+#define MAT_MAX (1 << 21)
 
 /*
  *         K                  N
@@ -33,17 +33,23 @@ int main() {
 
     assert(cublasCreate(&cublasHandle) == CUBLAS_STATUS_SUCCESS);
     assert(cudaMalloc(&devPtr[0], M_MAX * K_MAX * sizeof(float)) == cudaSuccess);
-    assert(cudaMalloc(&devPtr[1], K_MAX * N_MAX * sizeof(float)) == cudaSuccess);
-    assert(cudaMalloc(&devPtr[2], M_MAX * N_MAX * sizeof(float)) == cudaSuccess);
     assert(hostPtr[0] = malloc(M_MAX * K_MAX * sizeof(float)));
-    assert(hostPtr[1] = malloc(K_MAX * N_MAX * sizeof(float)));
-    assert(hostPtr[2] = malloc(M_MAX * N_MAX * sizeof(float)));
 
     for (int m = 64; m <= M_MAX; m <<= 1) {
         for (int k = 64; k <= K_MAX; k <<= 1) {
             printf("M: %d, K: %d\n", m, k);
-            for (int n = 128; n <= N_MAX; n <<= 1) {
-                int repeat = (M_MAX / m) * (N_MAX / n) * (K_MAX / k);
+            int nMax;
+            if (m < k) {
+                nMax = MAT_MAX / k;
+            } else {
+                nMax = MAT_MAX / m;
+            }
+            assert(cudaMalloc(&devPtr[1], K_MAX * nMax * sizeof(float)) == cudaSuccess);
+            assert(cudaMalloc(&devPtr[2], M_MAX * nMax * sizeof(float)) == cudaSuccess);
+            assert(hostPtr[1] = malloc(K_MAX * nMax * sizeof(float)));
+            assert(hostPtr[2] = malloc(M_MAX * nMax * sizeof(float)));
+            for (int n = 128; n <= nMax; n <<= 1) {
+                int repeat = (M_MAX / m) * (MAT_MAX / 64 / n) * (K_MAX / k);
                 startTime = clock();
                 while (repeat--) {
                     assert(cublasSetMatrix(k, m, sizeof(float), hostPtr[0], k, devPtr[0], k) == CUBLAS_STATUS_SUCCESS);
@@ -56,14 +62,14 @@ int main() {
                 }
                 printf("N: %d, time: %lf\n", n, (double) (clock() - startTime) / CLOCKS_PER_SEC);
             }
+            free(hostPtr[2]);
+            free(hostPtr[1]);
+            assert(cudaFree(devPtr[2]) == cudaSuccess);
+            assert(cudaFree(devPtr[1]) == cudaSuccess);
         }
     }
 
-    free(hostPtr[2]);
-    free(hostPtr[1]);
     free(hostPtr[0]);
-    assert(cudaFree(devPtr[2]) == cudaSuccess);
-    assert(cudaFree(devPtr[1]) == cudaSuccess);
     assert(cudaFree(devPtr[0]) == cudaSuccess);
     cublasDestroy(cublasHandle);
     return 0;
