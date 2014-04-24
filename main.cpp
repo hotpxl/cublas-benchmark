@@ -66,7 +66,8 @@ int main() {
                 while (repeat--) {
                     assert(cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, n, m, k, &alpha, (const float*) devPtr, n, (const float*) devPtr, k, &beta, (float*) devPtr, n) == CUBLAS_STATUS_SUCCESS);
                 }
-                assert(cublasGetMatrix(128, 128, sizeof(float), devPtr, 128, hostPtr, 128) == CUBLAS_STATUS_SUCCESS);
+                // assert(cublasGetMatrix(128, 128, sizeof(float), devPtr, 128, hostPtr, 128) == CUBLAS_STATUS_SUCCESS);
+                assert(cudaDeviceSynchronize() == cudaSuccess);
                 gettimeofday(&tv2, 0);
                 printf("For n = %d, time: %lf\n", n, (double) (tv2.tv_sec - tv1.tv_sec) * 1000000 + tv2.tv_usec - tv1.tv_usec);
             }
