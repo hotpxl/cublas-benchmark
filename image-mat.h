@@ -1,4 +1,4 @@
 #pragma once
 
-template <typename T> void image2MatCpu(const T*, const int, const int, const int, const int, const int, const int, const int, T*);
+template <typename T> void image2MatGpu(const T*, const int, const int, const int, const int, const int, const int, const int, T*);
 

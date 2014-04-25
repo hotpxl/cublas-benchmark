@@ -1,3 +1,4 @@
+#include "image-mat.h"
 #include <cuda_runtime.h>
 #include <cassert>
 #include <cstdlib>
@@ -20,35 +21,65 @@ using namespace std;
  *
  */
 
+struct ConvParameter {
+    int kernelLength;
+    int channelNum;
+    int stride;
+    int padding;
+    int height;
+    int width;
+};
+
 int main() {
     void* devPtr, * hostPtr;
-    int kCandidate[] = {363, 2304, 2400, 3456};
     clock_t startTime;
     struct timeval tv1, tv2;
+    struct ConvParameter params[3];
+    params[0].kernelLength = 11;
+    params[0].channelNum = 3;
+    params[0].stride = 4;
+    params[0].padding = 2;
+    params[0].height = 227;
+    params[0].width = 227;
+    params[1].kernelLength = 5;
+    params[1].channelNum = 96;
+    params[1].stride = 1;
+    params[1].padding = 1;
+    params[1].height = 28;
+    params[1].width = 28;
+    params[2].kernelLength = 3;
+    params[2].channelNum = 256;
+    params[2].stride = 1;
+    params[2].padding = 1;
+    params[2].height = 13;
+    params[2].width = 13;
+    params[3].kernelLength = 3;
+    params[3].channelNum = 384;
+    params[3].stride = 1;
+    params[3].padding = 1;
+    params[3].height = 13;
+    params[3].width = 13;
     assert(cudaMalloc(&devPtr, (1 << 30)) == cudaSuccess);
     assert(hostPtr = malloc(1 << 30));
 
-    for (int kIdx = 0; kIdx < 4; ++kIdx) {
-        int k = kCandidate[kIdx];
-        int nMax = (1 << 28) / k;
-        int nMaxRounded;
-        asm("bsrl %1, %0"
-                : "=r" (nMaxRounded)
-                : "r" (nMax));
-        for (int n = 512; n <= (1 << nMaxRounded); n <<= 1) {
-            int repeat = ((double) ((unsigned long long) 1 << 39)) / k / n;
+    for (int paramIdx = 0; paramIdx < 3; ++paramIdx) {
+        struct ConvParameter param = params[paramIdx];
+        int outputHeight = (param.height + 2 * param.padding - param.kernelLength) / param.stride + 1;
+        int outputWidth = (param.width + 2 * param.padding - param.kernelLength) / param.stride + 1;
+        int concatMax = (double) (1 << 28) / param.channelNum / param.kernelLength / param.kernelLength / outputHeight / outputWidth;
+        for (int n = 1; n <= concatMax; n = 1.2 * n + 1) {
+            int repeat = ((double) ((unsigned long long) 1 << 36)) / param.channelNum / param.kernelLength / param.kernelLength / outputHeight / outputWidth / n;
             int i = repeat;
-            int channelNum = 3;
             gettimeofday(&tv1, 0);
             while (i--) {
-                image2MatGpu(devPtr,  channelNum, 
-                assert(cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, n, m, k, &alpha, (const float*) devPtr, n, (const float*) devPtr, k, &beta, (float*) devPtr, n) == CUBLAS_STATUS_SUCCESS);
+                image2MatGpu((const float*) devPtr, n, param.channelNum, param.height, param.width, param.kernelLength, param.padding, param.stride, (float*) devPtr);
             }
             assert(cudaDeviceSynchronize() == cudaSuccess);
             gettimeofday(&tv2, 0);
-            printf("%d %d %d %d %lf\n", m, k, n, repeat, (double) (tv2.tv_sec - tv1.tv_sec) * 1000000 + tv2.tv_usec - tv1.tv_usec);
+            printf("k = %d each = %d total = %d repeat = %d time = %lf\n", param.channelNum * param.kernelLength * param.kernelLength, outputHeight * outputWidth, n, repeat, (double) (tv2.tv_sec - tv1.tv_sec) * 1000000 + tv2.tv_usec - tv1.tv_usec);
         }
     }
+
     free(hostPtr);
     assert(cudaFree(devPtr) == cudaSuccess);
     return 0;
