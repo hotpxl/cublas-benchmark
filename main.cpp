@@ -34,35 +34,38 @@ int main() {
     void* devPtr, * hostPtr;
     clock_t startTime;
     struct timeval tv1, tv2;
-    struct ConvParameter params[3];
+    struct ConvParameter params[4];
+    cudaStream_t stream[16];
+    assert(cudaMalloc(&devPtr, (1 << 30)) == cudaSuccess);
+    assert(hostPtr = malloc(1 << 30));
     params[0].kernelLength = 11;
     params[0].channelNum = 3;
     params[0].stride = 4;
     params[0].padding = 2;
     params[0].height = 227;
     params[0].width = 227;
-    params[1].kernelLength = 5;
-    params[1].channelNum = 96;
+    params[1].kernelLength = 3;
+    params[1].channelNum = 256;
     params[1].stride = 1;
     params[1].padding = 1;
-    params[1].height = 28;
-    params[1].width = 28;
-    params[2].kernelLength = 3;
-    params[2].channelNum = 256;
+    params[1].height = 13;
+    params[1].width = 13;
+    params[2].kernelLength = 5;
+    params[2].channelNum = 96;
     params[2].stride = 1;
     params[2].padding = 1;
-    params[2].height = 13;
-    params[2].width = 13;
+    params[2].height = 28;
+    params[2].width = 28;
     params[3].kernelLength = 3;
     params[3].channelNum = 384;
     params[3].stride = 1;
     params[3].padding = 1;
     params[3].height = 13;
     params[3].width = 13;
-    assert(cudaMalloc(&devPtr, (1 << 30)) == cudaSuccess);
-    assert(hostPtr = malloc(1 << 30));
-
-    for (int paramIdx = 0; paramIdx < 3; ++paramIdx) {
+    for (int i = 0; i < 16; ++i) {
+        cudaStreamCreate(&stream[i]);
+    }
+    for (int paramIdx = 0; paramIdx < 4; ++paramIdx) {
         struct ConvParameter param = params[paramIdx];
         int outputHeight = (param.height + 2 * param.padding - param.kernelLength) / param.stride + 1;
         int outputWidth = (param.width + 2 * param.padding - param.kernelLength) / param.stride + 1;
@@ -72,7 +75,7 @@ int main() {
             int i = repeat;
             gettimeofday(&tv1, 0);
             while (i--) {
-                image2MatGpu((const float*) devPtr, n, param.channelNum, param.height, param.width, param.kernelLength, param.padding, param.stride, (float*) devPtr);
+                image2MatGpu((const float*) devPtr, n, param.channelNum, param.height, param.width, param.kernelLength, param.padding, param.stride, (float*) devPtr, stream[i % 16]);
             }
             assert(cudaDeviceSynchronize() == cudaSuccess);
             gettimeofday(&tv2, 0);
@@ -80,6 +83,9 @@ int main() {
         }
     }
 
+    for (int i = 0; i < 16; ++i) {
+        cudaStreamDestroy(stream[i]);
+    }
     free(hostPtr);
     assert(cudaFree(devPtr) == cudaSuccess);
     return 0;

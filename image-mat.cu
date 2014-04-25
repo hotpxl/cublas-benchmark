@@ -32,16 +32,16 @@ template <typename T> __global__ void image2MatGpuKernel(const int n, const T* d
   }
 }
 
-template <typename T> void image2MatGpu(const T* dataImage, const int inputNum, const int channelNum, const int height, const int width, const int kernelLength, const int pad, const int stride, T* dataCol) {
+template <typename T> void image2MatGpu(const T* dataImage, const int inputNum, const int channelNum, const int height, const int width, const int kernelLength, const int pad, const int stride, T* dataCol, cudaStream_t stream) {
   // We are going to launch channelNum * nextLayerHeight * nextLayerWidth kernels, each kernel responsible for copying a single-channel grid.
   int nextLayerHeight = (height + 2 * pad - kernelLength) / stride + 1;
   int nextLayerWidth = (width + 2 * pad - kernelLength) / stride + 1;
   int kernelNum = inputNum * channelNum * nextLayerHeight * nextLayerWidth;
-  image2MatGpuKernel<T><<<CAFFE_GET_BLOCKS(kernelNum), CAFFE_CUDA_NUM_THREADS>>>(kernelNum, dataImage, inputNum, height, width, kernelLength, channelNum, pad, stride, nextLayerHeight, nextLayerWidth, dataCol);
+  image2MatGpuKernel<T><<<CAFFE_GET_BLOCKS(kernelNum), CAFFE_CUDA_NUM_THREADS, 0, stream>>>(kernelNum, dataImage, inputNum, height, width, kernelLength, channelNum, pad, stride, nextLayerHeight, nextLayerWidth, dataCol);
   if (cudaGetLastError() != cudaSuccess) {
     throw runtime_error("Device kernel failed");
   }
 }
 
-template void image2MatGpu<float>(const float*, const int, const int, const int, const int, const int, const int, const int, float*);
+template void image2MatGpu<float>(const float*, const int, const int, const int, const int, const int, const int, const int, float*, cudaStream_t);
 
