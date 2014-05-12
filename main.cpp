@@ -81,11 +81,14 @@ int main() {
         assert(cublasSetStream(cublasHandle, stream[i1 % 16]) == CUBLAS_STATUS_SUCCESS);
         image2MatGpu((const float*) devPtr[6], num, channelNum1, height1, width1, kernelLength1, padding1, stride1, (float*) devPtr[1], stream[i1 % 16]);
         assert(cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, n1, m1, k1, &alpha, (const float*) devPtr[1], n1, (const float*) devPtr[0], k1, &beta, (float*) devPtr[2], n1) == CUBLAS_STATUS_SUCCESS);
-        assert(cublasSetStream(cublasHandle, stream[(i1 + 1) % 16]) == CUBLAS_STATUS_SUCCESS);
-        image2MatGpu((const float*) devPtr[7], num, channelNum2, height2, width2, kernelLength2, padding2, stride2, (float*) devPtr[4], stream[(i1 + 1) % 16]);
+    }
+    assert(cudaDeviceSynchronize() == cudaSuccess);
+    //
+    while (i2--) {
+        assert(cublasSetStream(cublasHandle, stream[i2 % 16]) == CUBLAS_STATUS_SUCCESS);
+        image2MatGpu((const float*) devPtr[7], num, channelNum2, height2, width2, kernelLength2, padding2, stride2, (float*) devPtr[4], stream[i2 % 16]);
         assert(cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, n2, m2, k2, &alpha, (const float*) devPtr[4], n2, (const float*) devPtr[3], k2, &beta, (float*) devPtr[5], n2) == CUBLAS_STATUS_SUCCESS);
     }
-    //
     assert(cudaDeviceSynchronize() == cudaSuccess);
     gettimeofday(&tv2, 0);
     printf("%lf\n", (double) (tv2.tv_sec - tv1.tv_sec) * 1000000 + tv2.tv_usec - tv1.tv_usec);
@@ -93,7 +96,7 @@ int main() {
         assert(cudaStreamDestroy(stream[i]) == cudaSuccess);
     }
     for (int i = 0; i < 8; ++i) {
-        assert(cudaFree(devPtr[i]) == cudaSuccess);
+        assert(cudaFree(devPtr[i]) == cudaaaaaaaaaaaadSuccess);
     }
     cublasDestroy(cublasHandle);
     return 0;
