@@ -96,7 +96,7 @@ int main() {
         assert(cudaStreamDestroy(stream[i]) == cudaSuccess);
     }
     for (int i = 0; i < 8; ++i) {
-        assert(cudaFree(devPtr[i]) == cudaaaaaaaaaaaadSuccess);
+        assert(cudaFree(devPtr[i]) == cudaSuccess);
     }
     cublasDestroy(cublasHandle);
     return 0;
